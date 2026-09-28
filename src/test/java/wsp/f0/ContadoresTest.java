@@ -17,6 +17,13 @@ class ContadoresTest {
         assertEquals(HILOS * VECES, c.valor());
     }
 
+    @Test
+    void varHandleNoPierdeActualizaciones() throws InterruptedException {
+        Contadores.ConVarHandle c = new Contadores.ConVarHandle();
+        Contadores.correr(HILOS, VECES, c::incrementar);
+        assertEquals(HILOS * VECES, c.valor());
+    }
+
     /** No se puede afirmar que pierda: la carrera es no determinista. Solo que nunca sobra. */
     @Test
     void inseguroNuncaSuperaLoEsperado() throws InterruptedException {

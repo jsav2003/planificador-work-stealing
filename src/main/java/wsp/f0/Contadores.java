@@ -71,6 +71,27 @@ public final class Contadores {
     }
 
     /**
+     * Ejercicio 3: el CAS a mano. Es lo que {@code incrementAndGet} hace por dentro:
+     * leer, calcular, y publicar solo si nadie cambió el valor mientras tanto; si
+     * alguien lo cambió, {@code compareAndSet} falla y se reintenta con el valor nuevo.
+     * Nadie se bloquea: si un hilo reintenta es porque otro progresó (lock-free).
+     */
+    public static final class CasManual {
+        private final AtomicInteger valor = new AtomicInteger();
+
+        public void incrementar() {
+            int actual;
+            do {
+                actual = valor.get();
+            } while (!valor.compareAndSet(actual, actual + 1));
+        }
+
+        public int valor() {
+            return valor.get();
+        }
+    }
+
+    /**
      * Lanza {@code hilos} hilos que llaman {@code accion} {@code vecesPorHilo} veces y
      * espera a todos. El {@code join} es lo que da happens-before para leer el resultado
      * después (DESIGN §3.2, fila Thread.join).
@@ -99,12 +120,15 @@ public final class Contadores {
         Inseguro inseguro = new Inseguro();
         Atomico atomico = new Atomico();
         ConVarHandle conVarHandle = new ConVarHandle();
+        CasManual casManual = new CasManual();
         correr(hilos, veces, inseguro::incrementar);
         correr(hilos, veces, atomico::incrementar);
         correr(hilos, veces, conVarHandle::incrementar);
+        correr(hilos, veces, casManual::incrementar);
         System.out.println("esperado : " + hilos * veces);
         System.out.println("inseguro : " + inseguro.valor());
         System.out.println("atómico  : " + atomico.valor());
         System.out.println("varhandle: " + conVarHandle.valor());
+        System.out.println("cas      : " + casManual.valor());
     }
 }

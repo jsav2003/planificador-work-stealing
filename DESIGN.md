@@ -237,14 +237,14 @@ ocurren en la práctica.
 
 Presupuesto: 4-5 horas semanales durante 20-22 semanas ≈ 86 horas.
 
-| Fase | Horas | Terminada cuando |
-|---|---|---|
-| F0 · Java moderno y `java.util.concurrent` | 12 | Escribes y pruebas código con `AtomicInteger`, `VarHandle` y pools existentes |
-| F1 · Modelo de memoria | 12 | Puedes explicar por escrito por qué el ejemplo de la sección 3.1 produce ceros |
-| F2 · Cola de Michael-Scott (calentamiento) | 15 | Cola lock-free simple, con su primer test de jcstress en verde |
-| F3 · Deque de Chase-Lev | 20 | push/pop/steal correctos, incluido el crecimiento del arreglo |
-| F4 · Suite de jcstress | 15 | Todos los invariantes cubiertos, cero resultados prohibidos |
-| F5 · Pool, JMH y documentación | 12 | Gráfica de escalado y DESIGN/TESTING escritos |
+| Fase | Horas | Terminada cuando | Modelo |
+|---|---|---|---|
+| F0 · Java moderno y `java.util.concurrent` | 12 | Escribes y pruebas código con `AtomicInteger`, `VarHandle` y pools existentes | Sonnet |
+| F1 · Modelo de memoria | 12 | Puedes explicar por escrito por qué el ejemplo de la sección 3.1 produce ceros | Sonnet |
+| F2 · Cola de Michael-Scott (calentamiento) | 15 | Cola lock-free simple, con su primer test de jcstress en verde | Sonnet (Opus en plan si te atascas) |
+| F3 · Deque de Chase-Lev | 20 | push/pop/steal correctos, incluido el crecimiento del arreglo | **Opus en modo plan** |
+| F4 · Suite de jcstress | 15 | Todos los invariantes cubiertos, cero resultados prohibidos | **Opus en modo plan** |
+| F5 · Pool, JMH y documentación | 12 | Gráfica de escalado y DESIGN/TESTING escritos | Sonnet |
 
 ### Reglas de rescate
 

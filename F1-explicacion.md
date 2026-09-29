@@ -2,9 +2,9 @@
 
 Entregable de la F1: la fase termina cuando Sebastián puede explicarlo sin mirar el código.
 
-**Origen del texto:** las secciones 1, 2 y 2b son un borrador redactado por Claude a petición
+**Origen del texto:** las secciones 1, 2, 2b y 4 son un borrador redactado por Claude a petición
 de Sebastián (2026-09-29). Hay que leerlas hasta entenderlas y reescribir con palabras propias
-lo que no quede claro. Las secciones 3 a 5 siguen marcadas *(tuyo)*.
+lo que no quede claro. Las secciones 3 a 5 siguen marcadas *(tuyo)*, salvo la 4, también borrador.
 
 ## 1. Lista de reglas de `happens-before` (ejercicio 3)
 
@@ -124,9 +124,39 @@ lectura siguiente ya no puede adelantarse a la escritura.
 Dos núcleos, cada uno con su buffer de escrituras, y la memoria. Traza paso a paso una
 ejecución que da `r1 == 0 && r2 == 0`.
 
-## 4. Volatile, release/acquire, opaque *(tuyo, ejercicio 6)*
+## 4. Volatile, release/acquire, opaque (ejercicio 6)
 
-Qué ordena cada modo y cuál necesitará el deque.
+Medido con `ModosAcceso` sobre el mismo patrón de §3.1 (`(0,0)` en 2.000.000 de iteraciones,
+tres corridas): plano 8.522 / 5.045 / 55.289; opaque 4.521 / 6.952 / 6.556;
+**release/acquire 3.195 / 4.731 / 5.525**; volatile 0 / 0 / 0; release/acquire + `fullFence`
+0 / 0 / 0.
+
+| Modo | Qué garantiza | Qué **no** garantiza |
+|---|---|---|
+| Plano | nada entre hilos | todo |
+| `Opaque` | el acceso ocurre de verdad (el JIT no lo quita ni lo saca del bucle); coherencia sobre *esa* variable | orden respecto a otras variables |
+| `Release` / `Acquire` | lo escrito antes de un release es visible para quien lo lee con acquire (mensajería: "publico y aviso") | que una lectura posterior se adelante a una escritura anterior de *otra* variable |
+| `Volatile` | orden total de todos los accesos volatile | (es lo más caro) |
+
+Conclusión principal: **release/acquire no evita el `(0,0)`**. Solo ordena "lo de antes se ve
+al leer esto", en una dirección; no ordena una escritura seguida de una lectura de otra
+variable (store→load). Ese es el único reordenamiento que hace x86 en hardware, y es el
+que produce el `(0,0)`. Para prohibirlo hay que pagar `volatile` o poner un `fullFence`
+entre la escritura y la lectura.
+
+`-Xint`: con opaque y release/acquire salió 0 en 300.000 iteraciones, pero no lo tomo como
+prueba: en intérprete las dos escrituras y lecturas quedan muy separadas en el tiempo y la
+carrera casi no se da (incluso plano bajó a 16 y 2). Distinto del caso volátil, que es 0 por
+garantía y no por suerte.
+
+**Qué necesitará el deque de Chase-Lev (F3)**, a confirmar cuando se implemente:
+
+- `push`: escribir el elemento y luego publicar `bottom` con **release**; los ladrones leen
+  `bottom` con **acquire**. Es el patrón de mensajería, y release/acquire alcanza.
+- `pop` (dueño): baja `bottom` y luego lee `top`. Es escritura de una variable seguida de
+  lectura de *otra*, exactamente el patrón del `(0,0)`. Si fallan las dos partes, la última
+  tarea se ejecuta dos veces o ninguna (DESIGN §4.2). Aquí release/acquire **no** basta: hace
+  falta `volatile` o `fullFence` entre las dos operaciones.
 
 ## 5. La explicación *(tuyo, ejercicio 7)*
 

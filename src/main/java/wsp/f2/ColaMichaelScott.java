@@ -44,9 +44,8 @@ public final class ColaMichaelScott<T> {
         }
     }
 
-    @SuppressWarnings("unused") // se accede solo a través de HEAD
+    // Se leen directamente (lectura volatile) y se cambian solo con CAS a través de HEAD/TAIL.
     private volatile Nodo<T> head;
-    @SuppressWarnings("unused") // se accede solo a través de TAIL
     private volatile Nodo<T> tail;
 
     public ColaMichaelScott() {

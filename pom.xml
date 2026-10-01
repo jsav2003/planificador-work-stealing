@@ -36,11 +36,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
-                <configuration>
-                    <!-- JDK 23 desactiva el procesamiento de anotaciones implícito;
-                         jcstress genera código con su procesador. -->
-                    <proc>full</proc>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -49,4 +44,26 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- jcstress genera código con su procesador de anotaciones (JDK 23 ya no lo
+             activa solo). Va en un perfil y con su propio directorio de build para que el
+             IDE no vea ese código generado: lo compilaba mal (cientos de errores) y
+             sobrescribía las clases de target/test-classes. Lo activa scripts/jcstress.ps1. -->
+        <profile>
+            <id>jcstress</id>
+            <build>
+                <directory>${project.basedir}/target/jcstress-build</directory>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <proc>full</proc>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -4,7 +4,7 @@ Entregable de la F1: la fase termina cuando Sebastián puede explicarlo sin mira
 
 **Origen del texto:** las secciones 1, 2, 2b y 4 son un borrador redactado por Claude a petición
 de Sebastián (2026-09-29). Hay que leerlas hasta entenderlas y reescribir con palabras propias
-lo que no quede claro. Las secciones 3 a 5 siguen marcadas *(tuyo)*, salvo la 4, también borrador.
+lo que no quede claro. Las secciones 3 y 5 también son borrador de Claude (2026-10-01).
 
 ## 1. Lista de reglas de `happens-before` (ejercicio 3)
 
@@ -119,10 +119,46 @@ Cómo lo consigue la JVM: tras cada escritura volatile inserta una barrera que v
 buffer de escrituras del núcleo (en x86, una instrucción tipo `lock`), de modo que la
 lectura siguiente ya no puede adelantarse a la escritura.
 
-## 3. Dibujo del store buffer *(tuyo, ejercicio 5)*
+## 3. Dibujo del store buffer (ejercicio 5)
 
-Dos núcleos, cada uno con su buffer de escrituras, y la memoria. Traza paso a paso una
-ejecución que da `r1 == 0 && r2 == 0`.
+*Borrador de Claude, 2026-10-01.*
+
+Cada núcleo tiene un **buffer de escrituras** entre él y la memoria compartida (la caché). Una
+escritura no va directa a memoria: entra al buffer y se vacía después. El núcleo que escribió
+la ve de inmediato (lee de su propio buffer); el otro núcleo no la ve hasta que se vacíe.
+Las lecturas no esperan al buffer.
+
+```
+   Núcleo A                          Núcleo B
+  ┌──────────┐                      ┌──────────┐
+  │ buffer A │                      │ buffer B │
+  │ (x = 1)  │                      │ (y = 1)  │
+  └────┬─────┘                      └────┬─────┘
+       │  se vacía "cuando puede"        │
+       ▼                                 ▼
+  ┌───────────────────────────────────────────┐
+  │        memoria compartida:  x = 0, y = 0  │
+  └───────────────────────────────────────────┘
+```
+
+Traza de una ejecución que da `r1 == 0 && r2 == 0` (inicio: `x = 0`, `y = 0`):
+
+| Paso | Núcleo A | Núcleo B | buffer A | buffer B | Memoria (x, y) |
+|---|---|---|---|---|---|
+| 1 | ejecuta `x = 1` | ejecuta `y = 1` | `x=1` | `y=1` | (0, 0) |
+| 2 | ejecuta `r1 = y`: no hay `y` en su buffer, lee memoria: **0** | ejecuta `r2 = x`: no hay `x` en su buffer, lee memoria: **0** | `x=1` | `y=1` | (0, 0) |
+| 3 | | | se vacía | se vacía | (1, 1) |
+
+Resultado: `r1 = 0`, `r2 = 0`. Los dos hilos ejecutaron sus instrucciones **en el orden del
+programa**, y aun así el efecto fue como si `r1 = y` hubiera pasado antes que `x = 1`: la
+escritura tardó en hacerse visible y la lectura no esperó. Ese es el reordenamiento
+**store→load** (escritura seguida de lectura de otra variable). Es el único que hace x86 en
+hardware, y por eso aparece también con `-Xint`.
+
+Qué cambia con `volatile`: tras la escritura, la JVM inserta una barrera que **obliga a
+vaciar el buffer antes de seguir** (en x86, una instrucción con prefijo `lock` o `mfence`).
+En el paso 2 el buffer de A ya está vacío, `x = 1` ya está en memoria, y B lo lee: al menos
+uno de los dos ve un 1.
 
 ## 4. Volatile, release/acquire, opaque (ejercicio 6)
 
@@ -158,10 +194,47 @@ garantía y no por suerte.
   tarea se ejecuta dos veces o ninguna (DESIGN §4.2). Aquí release/acquire **no** basta: hace
   falta `volatile` o `fullFence` entre las dos operaciones.
 
-## 5. La explicación *(tuyo, ejercicio 7)*
+## 5. La explicación (ejercicio 7)
 
-¿Por qué, si el código "parece imposible", `r1 == 0 && r2 == 0` ocurre? Las dos causas
-(procesador y compilador/JIT), y qué regla del JMM lo arregla.
+*Borrador de Claude, 2026-10-01.*
 
-Datos medidos en esta máquina (F1 ejercicios 1 y 2, ver `F1.md`): con campos normales sale
-`(0,0)` ~0,5 % de las veces, también con `-Xint`; con `volatile`, nunca.
+**La pregunta.** Dos hilos, `x` e `y` valen 0. A hace `x = 1; r1 = y;` y B hace
+`y = 1; r2 = x;`. Leyendo el código parece que alguno de los dos tiene que ver el 1 del
+otro, así que `r1 == 0 && r2 == 0` "no puede pasar". Pasa.
+
+**El error está en la suposición.** Se piensa que los hilos se intercalan, un paso cada vez,
+en un único orden global. Eso es la *consistencia secuencial*, y ni el procesador ni el
+compilador ni el modelo de memoria de Java la prometen. Java solo la promete a los programas
+**sin carreras de datos**, y este tiene una: `x` se escribe en un hilo y se lee en otro sin
+ninguna relación happens-before entre ambos accesos. Con una carrera, el JMM no dice qué valor
+se lee, y `0` es un valor permitido.
+
+**Causa 1: el procesador.** Cada núcleo escribe en un buffer propio antes de llegar a memoria
+(§3). La lectura siguiente no espera al buffer, así que A lee `y` y B lee `x` antes de que
+la escritura del otro sea visible. Es el reordenamiento store→load. Se comprobó que ocurre
+sin compilador de por medio: con `-Xint` el `(0,0)` sigue saliendo (523 y 240 de 300.000).
+
+**Causa 2: el compilador / JIT.** Para un hilo, `x = 1; r1 = y;` son independientes (variables
+distintas), y el JIT tiene derecho a intercambiarlos o a mantener valores en registros. Es
+la causa de los fallos que *solo* aparecen con JIT, como la bandera de §2 que el lector nunca
+ve. En el `(0,0)` concreto de esta máquina la causa medida es la 1; la 2 está permitida por
+el JMM y puede aparecer en otra JVM o con otro código.
+
+Ambas están permitidas porque el JMM define **qué puede ver cada hilo**, no un orden de
+ejecución real. Las dos optimizaciones (buffer y reordenar) son legales mientras el hilo mismo
+no note la diferencia, y eso es justo lo que hace rápido el código.
+
+**La regla que lo arregla.** Declarar `x` e `y` `volatile`. Todos los accesos volatile forman
+un único orden total que respeta el orden de programa de cada hilo (§2b). `(0,0)` exigiría
+`x=1 < r1=y < y=1 < r2=x < x=1`: un ciclo, imposible. En la práctica la JVM vacía el buffer
+tras cada escritura volatile y prohíbe al JIT reordenar. Medido: `(0,0)` ~0,5 % con campos
+normales, 0 en millones de iteraciones con `volatile`, y también 0 con `-Xint`.
+
+**Lo que no arregla cualquier cosa.** `Release`/`Acquire` no basta (§4): ordena "lo de antes
+se ve al leer esto", pero no una escritura seguida de la lectura de otra variable. Hace falta
+`volatile` o un `fullFence` en medio.
+
+**Resumen en una frase.** Sale `(0,0)` porque sin `volatile` no hay orden entre los accesos a
+`x` e `y` de hilos distintos, y tanto el procesador (store buffer) como el compilador pueden
+retrasar o reordenar una escritura respecto a la lectura siguiente; `volatile` los
+ordena.

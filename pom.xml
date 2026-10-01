@@ -21,10 +21,27 @@
             <version>5.11.4</version>
             <scope>test</scope>
         </dependency>
+        <!-- Solo pruebas (DESIGN §10). Se corre con el script descrito en F2.md. -->
+        <dependency>
+            <groupId>org.openjdk.jcstress</groupId>
+            <artifactId>jcstress-core</artifactId>
+            <version>0.16</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <!-- JDK 23 desactiva el procesamiento de anotaciones implícito;
+                         jcstress genera código con su procesador. -->
+                    <proc>full</proc>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

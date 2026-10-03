@@ -23,7 +23,8 @@ public final class ColaMichaelScott<T> {
 
     private static final class Nodo<T> {
         final T item;
-        Nodo<T> siguiente; // solo vía SIGUIENTE
+        @SuppressWarnings("unused") // solo se accede vía SIGUIENTE (VarHandle)
+        Nodo<T> siguiente;
 
         Nodo(T item) {
             this.item = item;
@@ -46,7 +47,9 @@ public final class ColaMichaelScott<T> {
     }
 
     // Solo se tocan a través de HEAD/TAIL: lectura getAcquire, cambio con CAS.
+    @SuppressWarnings("unused") // solo se accede vía HEAD (VarHandle)
     private Nodo<T> head;
+    @SuppressWarnings("unused") // solo se accede vía TAIL (VarHandle)
     private Nodo<T> tail;
 
     public ColaMichaelScott() {

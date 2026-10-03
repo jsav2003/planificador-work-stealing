@@ -2,9 +2,10 @@
 
 Entregable de la F1: la fase termina cuando Sebastián puede explicarlo sin mirar el código.
 
-**Origen del texto:** las secciones 1, 2, 2b y 4 son un borrador redactado por Claude a petición
-de Sebastián (2026-09-29). Hay que leerlas hasta entenderlas y reescribir con palabras propias
-lo que no quede claro. Las secciones 3 y 5 también son borrador de Claude (2026-10-01).
+**Origen del texto:** todas las secciones (1, 2, 2b, 3, 4 y 5) las redactó Claude a petición de
+Sebastián (2026-09-29, 2026-10-01 y entrega final el 2026-10-02). Se entregan como están, no
+reescritas por Sebastián. Que él pueda explicarlas sin mirarlas es un criterio aparte que no se
+ha comprobado.
 
 ## 1. Lista de reglas de `happens-before` (ejercicio 3)
 
@@ -121,7 +122,7 @@ lectura siguiente ya no puede adelantarse a la escritura.
 
 ## 3. Dibujo del store buffer (ejercicio 5)
 
-*Borrador de Claude, 2026-10-01.*
+*Redactado por Claude.*
 
 Cada núcleo tiene un **buffer de escrituras** entre él y la memoria compartida (la caché). Una
 escritura no va directa a memoria: entra al buffer y se vacía después. El núcleo que escribió
@@ -196,7 +197,7 @@ garantía y no por suerte.
 
 ## 5. La explicación (ejercicio 7)
 
-*Borrador de Claude, 2026-10-01.*
+*Redactado por Claude.*
 
 **La pregunta.** Dos hilos, `x` e `y` valen 0. A hace `x = 1; r1 = y;` y B hace
 `y = 1; r2 = x;`. Leyendo el código parece que alguno de los dos tiene que ver el 1 del

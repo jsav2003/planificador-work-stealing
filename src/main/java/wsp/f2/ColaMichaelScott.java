@@ -12,8 +12,9 @@ import java.lang.invoke.VarHandle;
  * {@code tail}) y entre ellos la cola queda "atrasada". Cualquier hilo que la encuentre así
  * la adelanta él mismo (ayuda); por eso ningún hilo espera a otro: es lock-free.
  *
- * <p>Esta versión usa acceso volatile en todo (campos {@code volatile} y {@code compareAndSet}),
- * que es lo correcto de partida. Debilitar los modos de acceso, si se puede, es el ejercicio 5.
+ * <p>Los accesos están debilitados con {@code VarHandle}: lecturas {@code getAcquire}, avance de
+ * {@code tail} con {@code weakCompareAndSetRelease}, y CAS fuerte solo donde un elemento entra o sale
+ * de la cola. La justificación de cada modo está en {@code F2.md}.
  *
  * <p>Sin problema ABA: los nodos no se reutilizan y el GC no recicla uno mientras algún hilo
  * conserve una referencia (DESIGN §5).

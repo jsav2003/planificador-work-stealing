@@ -14,11 +14,12 @@ lecturas que dependen unas de otras. Por eso muchos errores de ordenación **no 
 manifestar** ahí, y un test en verde no prueba que el código sea correcto en ARM u otras
 arquitecturas débiles.
 
-Evidencia (F2, 2026-10-02): en la cola de Michael-Scott se quitó el `volatile` de `siguiente`,
-y además se publicó el nodo con una escritura normal en lugar de CAS. El test
-`VisibilidadDelContenido` siguió en verde (14 de 14 configuraciones). El test está bien
-planteado, pero en esta máquina no puede distinguir el código correcto del roto en esos dos
-puntos.
+Evidencia (F2, 2026-10-02): en la cola de Michael-Scott se probaron tres mutaciones cada vez más
+agresivas (quitar el `volatile` de `siguiente`; publicar con escritura normal en lugar de CAS;
+además `item` no `final` y lectura normal). `VisibilidadDelContenido` siguió en verde (14 de 14
+configuraciones) en las tres. No sabemos cuáles de ellas son bugs reales según el modelo de
+memoria (el campo `final` podría proteger el contenido); lo que sí sabemos es que en esta
+máquina el test no distingue ninguna del código original.
 
 Consecuencias:
 

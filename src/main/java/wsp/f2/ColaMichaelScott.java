@@ -18,11 +18,12 @@ import java.lang.invoke.VarHandle;
  * <p>Sin problema ABA: los nodos no se reutilizan y el GC no recicla uno mientras algún hilo
  * conserve una referencia (DESIGN §5).
  */
+@SuppressWarnings("unchecked")
 public final class ColaMichaelScott<T> {
 
     private static final class Nodo<T> {
         final T item;
-        volatile Nodo<T> siguiente;
+        Nodo<T> siguiente; // solo vía SIGUIENTE
 
         Nodo(T item) {
             this.item = item;
@@ -44,14 +45,14 @@ public final class ColaMichaelScott<T> {
         }
     }
 
-    // Se leen directamente (lectura volatile) y se cambian solo con CAS a través de HEAD/TAIL.
-    private volatile Nodo<T> head;
-    private volatile Nodo<T> tail;
+    // Solo se tocan a través de HEAD/TAIL: lectura getAcquire, cambio con CAS.
+    private Nodo<T> head;
+    private Nodo<T> tail;
 
     public ColaMichaelScott() {
         Nodo<T> centinela = new Nodo<>(null);
-        head = centinela;
-        tail = centinela;
+        HEAD.set(this, centinela);
+        TAIL.set(this, centinela);
     }
 
     /** Añade {@code valor} al final. Nunca bloquea; {@code null} no se admite. */
@@ -61,9 +62,9 @@ public final class ColaMichaelScott<T> {
         }
         Nodo<T> nuevo = new Nodo<>(valor);
         while (true) {
-            Nodo<T> t = tail;
-            Nodo<T> sig = t.siguiente;
-            if (t != tail) {
+            Nodo<T> t = (Nodo<T>) TAIL.getAcquire(this);
+            Nodo<T> sig = (Nodo<T>) SIGUIENTE.getAcquire(t);
+            if (t != TAIL.getAcquire(this)) {
                 continue; // tail cambió mientras leíamos: lo leído ya no sirve
             }
             if (sig == null) {
@@ -71,12 +72,12 @@ public final class ColaMichaelScott<T> {
                 if (SIGUIENTE.compareAndSet(t, null, nuevo)) {
                     // éxito: el elemento ya está en la cola. Mover tail es opcional;
                     // si falla es que otro hilo ya lo adelantó
-                    TAIL.compareAndSet(this, t, nuevo);
+                    TAIL.weakCompareAndSetRelease(this, t, nuevo);
                     return;
                 }
             } else {
                 // tail atrasada: ayudar a adelantarla y reintentar
-                TAIL.compareAndSet(this, t, sig);
+                TAIL.weakCompareAndSetRelease(this, t, sig);
             }
         }
     }
@@ -84,10 +85,10 @@ public final class ColaMichaelScott<T> {
     /** Saca el primero, o devuelve {@code null} si la cola está vacía. Nunca bloquea. */
     public T desencolar() {
         while (true) {
-            Nodo<T> h = head;
-            Nodo<T> t = tail;
-            Nodo<T> primero = h.siguiente;
-            if (h != head) {
+            Nodo<T> h = (Nodo<T>) HEAD.getAcquire(this);
+            Nodo<T> t = (Nodo<T>) TAIL.getAcquire(this);
+            Nodo<T> primero = (Nodo<T>) SIGUIENTE.getAcquire(h);
+            if (h != HEAD.getAcquire(this)) {
                 continue; // instantánea inconsistente
             }
             if (primero == null) {
@@ -96,7 +97,7 @@ public final class ColaMichaelScott<T> {
             if (h == t) {
                 // hay un elemento enlazado pero tail se quedó atrás: adelantarla
                 // antes de sacar, para que tail nunca quede por detrás de head
-                TAIL.compareAndSet(this, t, primero);
+                TAIL.weakCompareAndSetRelease(this, t, primero);
                 continue;
             }
             // item es final: se lee antes del CAS sin riesgo de ver nada a medias.
@@ -110,6 +111,6 @@ public final class ColaMichaelScott<T> {
 
     /** Sin elementos en este instante. En concurrencia el resultado puede quedar viejo. */
     public boolean estaVacia() {
-        return head.siguiente == null;
+        return SIGUIENTE.getAcquire(HEAD.getAcquire(this)) == null;
     }
 }

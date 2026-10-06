@@ -266,7 +266,9 @@ Presupuesto: 4-5 horas semanales durante 20-22 semanas ≈ 86 horas.
 
 ## 10. Qué queda en el repositorio
 
-- El código, sin dependencias fuera de jcstress y JMH (ambas solo para pruebas).
+- El código, sin dependencias fuera de jcstress, JMH y JUnit (las tres solo para pruebas y
+  mediciones, ámbito `test`; `src/main` no depende de nada). Decidido el 2026-10-06: JUnit no
+  cuenta contra "sin dependencias".
 - `DESIGN.md` — este documento.
 - `MEMORY-MODEL.md` — la justificación, invariante por invariante, de por qué cada
   barrera es necesaria y suficiente. **Esta es la pieza que comunica competencia**: es

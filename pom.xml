@@ -46,6 +46,23 @@
     </build>
 
     <profiles>
+        <!-- Corre las pruebas con el intérprete puro (DESIGN §7.4): el JIT cambia qué
+             reordenamientos ocurren. Uso: mvn test -Pxint -->
+        <profile>
+            <id>xint</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>-Xint</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- jcstress genera código con su procesador de anotaciones (JDK 23 ya no lo
              activa solo). Va en un perfil y con su propio directorio de build para que el
              IDE no vea ese código generado: lo compilaba mal (cientos de errores) y

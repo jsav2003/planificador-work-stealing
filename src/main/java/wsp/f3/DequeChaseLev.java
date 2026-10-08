@@ -4,7 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
 /**
- * F3, ejercicios 2 y 4: deque de Chase y Lev (2005) con arreglo que crece, {@code pop} incompleto.
+ * F3, ejercicios 2, 3b y 4: deque de Chase y Lev (2005) con arreglo que crece.
  *
  * <p>Arreglo circular de capacidad potencia de 2 con dos índices {@code long} que solo crecen
  * (el casillero es {@code índice & máscara}). El dueño empuja y saca por {@code bottom}; los
@@ -17,8 +17,9 @@ import java.lang.invoke.VarHandle;
  * lo libera el GC (DESIGN §5). Quién se lleva cada tarea lo decide el CAS sobre {@code top}, no
  * el contenido del arreglo.
  *
- * <p><b>Incompleto:</b> {@code pop} solo tiene el camino rápido. Con una única tarea en disputa
- * contra un ladrón puede devolverla dos veces (DESIGN §4.2); el ejercicio 3b lo corrige.
+ * <p><b>La última tarea (DESIGN §4.2):</b> cuando {@code pop} y un ladrón van por la única tarea
+ * que queda, los dos compiten con {@code compareAndSet} sobre {@code top}; el que pierde se va con
+ * las manos vacías. {@code pop} restaura {@code bottom} gane o pierda.
  *
  * <p>Los modos de acceso son las hipótesis de {@code F3.md}, sin confirmar (ejercicio 6).
  * {@code push} y {@code pop} los llama solo el hilo dueño; {@code steal}, cualquiera.
@@ -89,8 +90,8 @@ public final class DequeChaseLev<T> {
     }
 
     /**
-     * Solo el dueño: saca la tarea más reciente, o {@code null} si está vacío.
-     * Solo camino rápido: no es seguro si un ladrón compite por la última tarea.
+     * Solo el dueño: saca la tarea más reciente, o {@code null} si está vacío (o si un ladrón se
+     * llevó la última tarea antes).
      */
     @SuppressWarnings("unchecked")
     public T pop() {
@@ -104,11 +105,11 @@ public final class DequeChaseLev<T> {
         Object[] arreglo = (Object[]) CASILLAS.get(this);
         T tarea = (T) arreglo[(int) (b & (arreglo.length - 1))];
         if (t == b) {
-            // última tarea: consumirla (top = t + 1) y dejar bottom == top. Aquí falta el CAS
-            // contra el ladrón: con una escritura normal dos hilos podrían llevarse la misma
-            // tarea (ejercicio 3b)
-            TOP.set(this, t + 1);
-            BOTTOM.set(this, b + 1);
+            // última tarea: el ladrón puede estar yendo por la misma. Gana quien avance top.
+            if (!TOP.compareAndSet(this, t, t + 1)) {
+                tarea = null; // el ladrón ganó
+            }
+            BOTTOM.set(this, b + 1); // en los dos casos el deque queda vacío: bottom == top
         }
         return tarea;
     }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 /** Pruebas secuenciales del ejercicio 2: un solo hilo, sin ladrones a la vez. */
@@ -166,5 +167,46 @@ class DequeChaseLevTest {
     @Test
     void nullNoSeAdmite() {
         assertThrows(NullPointerException.class, () -> new DequeChaseLev<Integer>(2).push(null));
+    }
+
+    /**
+     * Ejercicio 3b: la última tarea, repetida. Cada ronda tiene una sola tarea; el dueño hace
+     * {@code pop} y un ladrón hace {@code steal} a la vez. Debe salir exactamente una vez.
+     * En x86 un resultado correcto no prueba los modos de acceso (README); sí atrapa la lógica.
+     */
+    @Test
+    void laUltimaTareaSaleExactamenteUnaVez() throws Exception {
+        final int rondas = 20_000;
+        DequeChaseLev<Integer> d = new DequeChaseLev<>(2);
+        AtomicInteger robadas = new AtomicInteger();
+        AtomicInteger propias = new AtomicInteger();
+        AtomicInteger ronda = new AtomicInteger(-1); // la ronda que el ladrón puede atacar
+        AtomicInteger atendida = new AtomicInteger(-1); // última ronda que el ladrón terminó
+        Thread ladron = new Thread(() -> {
+            for (int r = 0; r < rondas; r++) {
+                while (ronda.get() < r) {
+                    Thread.onSpinWait();
+                }
+                if (d.steal() != null) {
+                    robadas.incrementAndGet();
+                }
+                atendida.set(r);
+            }
+        });
+        ladron.start();
+        for (int r = 0; r < rondas; r++) {
+            d.push(r);
+            ronda.set(r);
+            if (d.pop() != null) {
+                propias.incrementAndGet();
+            }
+            while (atendida.get() < r) {
+                Thread.onSpinWait();
+            }
+            assertNull(d.pop(), "el deque debe quedar vacío tras cada ronda");
+            assertNull(d.steal());
+        }
+        ladron.join();
+        assertEquals(rondas, robadas.get() + propias.get());
     }
 }

@@ -4,16 +4,21 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
 /**
- * F3, ejercicio 2: deque de Chase y Lev (2005) de tamaño fijo, versión incompleta a propósito.
+ * F3, ejercicios 2 y 4: deque de Chase y Lev (2005) con arreglo que crece, {@code pop} incompleto.
  *
  * <p>Arreglo circular de capacidad potencia de 2 con dos índices {@code long} que solo crecen
  * (el casillero es {@code índice & máscara}). El dueño empuja y saca por {@code bottom}; los
  * ladrones roban por {@code top} con {@code compareAndSet}. Los elementos están en el rango
  * {@code [top, bottom)}.
  *
+ * <p><b>Crecimiento:</b> si {@code push} encuentra el arreglo lleno, copia {@code [top, bottom)} a
+ * uno del doble y lo publica ({@code setRelease}) antes de publicar {@code bottom}. Nunca se
+ * encoge, y el arreglo viejo no se vacía: un ladrón que aún lo tenga puede leerlo sin riesgo y
+ * lo libera el GC (DESIGN §5). Quién se lleva cada tarea lo decide el CAS sobre {@code top}, no
+ * el contenido del arreglo.
+ *
  * <p><b>Incompleto:</b> {@code pop} solo tiene el camino rápido. Con una única tarea en disputa
- * contra un ladrón puede devolverla dos veces (DESIGN §4.2); el ejercicio 3b lo corrige. Además
- * {@code push} lanza {@link IllegalStateException} si está lleno; el crecimiento es el ejercicio 4.
+ * contra un ladrón puede devolverla dos veces (DESIGN §4.2); el ejercicio 3b lo corrige.
  *
  * <p>Los modos de acceso son las hipótesis de {@code F3.md}, sin confirmar (ejercicio 6).
  * {@code push} y {@code pop} los llama solo el hilo dueño; {@code steal}, cualquiera.
@@ -22,12 +27,15 @@ public final class DequeChaseLev<T> {
 
     private static final VarHandle BOTTOM;
     private static final VarHandle TOP;
+    private static final VarHandle CASILLAS;
+    private static final int CAPACIDAD_MAXIMA = 1 << 30;
 
     static {
         try {
             MethodHandles.Lookup l = MethodHandles.lookup();
             BOTTOM = l.findVarHandle(DequeChaseLev.class, "bottom", long.class);
             TOP = l.findVarHandle(DequeChaseLev.class, "top", long.class);
+            CASILLAS = l.findVarHandle(DequeChaseLev.class, "casillas", Object[].class);
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
@@ -38,16 +46,16 @@ public final class DequeChaseLev<T> {
     @SuppressWarnings("unused") // solo se accede vía TOP (VarHandle)
     private long top;
 
-    private final Object[] casillas;
-    private final int mascara;
+    // Solo el dueño la reemplaza (en push). Los ladrones la leen con getAcquire.
+    @SuppressWarnings("unused") // solo se accede vía CASILLAS (VarHandle)
+    private Object[] casillas;
 
     /** @param capacidad potencia de 2, al menos 2 */
     public DequeChaseLev(int capacidad) {
         if (capacidad < 2 || Integer.bitCount(capacidad) != 1) {
             throw new IllegalArgumentException("la capacidad debe ser potencia de 2 y al menos 2");
         }
-        casillas = new Object[capacidad];
-        mascara = capacidad - 1;
+        CASILLAS.set(this, new Object[capacidad]);
     }
 
     /** Solo el dueño. {@code null} no se admite. */
@@ -57,11 +65,27 @@ public final class DequeChaseLev<T> {
         }
         long b = (long) BOTTOM.get(this); // plano: solo el dueño lo escribe
         long t = (long) TOP.getAcquire(this);
-        if (b - t >= casillas.length) {
-            throw new IllegalStateException("deque lleno");
+        Object[] arreglo = (Object[]) CASILLAS.get(this); // plano: solo el dueño lo reemplaza
+        if (b - t >= arreglo.length) {
+            arreglo = crecer(arreglo, t, b);
         }
-        casillas[(int) (b & mascara)] = tarea; // plano: lo publica el release de bottom
+        arreglo[(int) (b & (arreglo.length - 1))] = tarea; // plano: lo publica el release de bottom
         BOTTOM.setRelease(this, b + 1);
+    }
+
+    /** Copia {@code [t, b)} a un arreglo del doble y lo publica antes de que {@code bottom} suba. */
+    private Object[] crecer(Object[] viejo, long t, long b) {
+        if (viejo.length >= CAPACIDAD_MAXIMA) {
+            throw new IllegalStateException("deque lleno (capacidad máxima)");
+        }
+        Object[] nuevo = new Object[viejo.length * 2];
+        int mascaraViejo = viejo.length - 1;
+        int mascaraNuevo = nuevo.length - 1;
+        for (long i = t; i < b; i++) {
+            nuevo[(int) (i & mascaraNuevo)] = viejo[(int) (i & mascaraViejo)];
+        }
+        CASILLAS.setRelease(this, nuevo); // la copia queda completa para quien lo lea con acquire
+        return nuevo;
     }
 
     /**
@@ -77,7 +101,8 @@ public final class DequeChaseLev<T> {
             BOTTOM.set(this, b + 1); // estaba vacío: restaurar bottom
             return null;
         }
-        T tarea = (T) casillas[(int) (b & mascara)];
+        Object[] arreglo = (Object[]) CASILLAS.get(this);
+        T tarea = (T) arreglo[(int) (b & (arreglo.length - 1))];
         if (t == b) {
             // última tarea: consumirla (top = t + 1) y dejar bottom == top. Aquí falta el CAS
             // contra el ladrón: con una escritura normal dos hilos podrían llevarse la misma
@@ -100,7 +125,9 @@ public final class DequeChaseLev<T> {
         if (t >= b) {
             return null;
         }
-        T tarea = (T) casillas[(int) (t & mascara)]; // lectura con carrera; la valida el CAS
+        // Se lee después de bottom: ese acquire garantiza ver un arreglo que contiene el índice t
+        Object[] arreglo = (Object[]) CASILLAS.getAcquire(this);
+        T tarea = (T) arreglo[(int) (t & (arreglo.length - 1))]; // lectura con carrera; la valida el CAS
         if (!TOP.compareAndSet(this, t, t + 1)) {
             return null;
         }

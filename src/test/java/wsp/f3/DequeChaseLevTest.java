@@ -55,14 +55,55 @@ class DequeChaseLevTest {
     }
 
     @Test
-    void llenoLanzaExcepcion() {
+    void llenoCreceYConservaElOrden() {
+        DequeChaseLev<Integer> d = new DequeChaseLev<>(2);
+        for (int i = 0; i < 1000; i++) {
+            d.push(i);
+        }
+        for (int i = 0; i < 500; i++) {
+            assertEquals(i, d.steal());
+        }
+        for (int i = 999; i >= 500; i--) {
+            assertEquals(i, d.pop());
+        }
+        assertNull(d.pop());
+        assertNull(d.steal());
+    }
+
+    @Test
+    void creceConElRangoDesplazadoYDandoVueltas() {
+        DequeChaseLev<Integer> d = new DequeChaseLev<>(4);
+        int siguiente = 0;
+        int esperado = 0;
+        // top y bottom avanzan muchas vueltas antes de que llegue el crecimiento
+        for (int i = 0; i < 50; i++) {
+            d.push(siguiente++);
+            d.push(siguiente++);
+            assertEquals(esperado++, d.steal());
+            assertEquals(esperado++, d.steal());
+        }
+        d.push(siguiente++);
+        for (int i = 0; i < 20; i++) { // obliga a crecer varias veces con top > 0
+            d.push(siguiente++);
+        }
+        while (esperado < siguiente) {
+            assertEquals(esperado++, d.steal());
+        }
+        assertNull(d.steal());
+    }
+
+    @Test
+    void despuesDeCrecerSigueFuncionandoPopYPush() {
         DequeChaseLev<Integer> d = new DequeChaseLev<>(2);
         d.push(1);
         d.push(2);
-        assertThrows(IllegalStateException.class, () -> d.push(3));
-        assertEquals(2, d.pop()); // sigue usable
-        d.push(3);
+        d.push(3); // crece
         assertEquals(3, d.pop());
+        d.push(4);
+        assertEquals(1, d.steal());
+        assertEquals(4, d.pop());
+        assertEquals(2, d.pop());
+        assertNull(d.pop());
     }
 
     @Test

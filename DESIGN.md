@@ -255,6 +255,23 @@ Presupuesto: 4-5 horas semanales durante 20-22 semanas ≈ 86 horas.
   pool sin verificación no lo es.
 - La F4 no se recorta nunca. Es el proyecto.
 
+### Recorte aplicado (2026-10-08)
+
+Sebastián decidió que no va a escribir las explicaciones del modelo de memoria con sus palabras
+(F1 cerrada con el criterio no cumplido, ver `F1.md`). Con eso la premisa de §1, **demostrar** que
+se entiende el modelo de memoria, ya no se sostiene, y el proyecto se redefine como **implementar y
+probar** un deque de Chase-Lev:
+
+- **Se entrega:** el deque (F3: `push`, `pop` con la última tarea, `steal`, crecimiento), sus pruebas
+  JUnit y la suite de jcstress (F4), con el límite de x86 anotado en el README.
+- **Se quita:** el pool, JMH y la gráfica (F5), `MEMORY-MODEL.md` y `BENCHMARKS.md`. §6 queda como
+  diseño no construido.
+- **Ya no se pide a Sebastián:** el ejercicio 1 y el 3a de la F3 (explicación del `pop`) y el
+  argumento del ejercicio 6. Si aparecen textos sobre modos de acceso, los redacta Claude y así
+  se marcan en el repo; no acreditan comprensión.
+- **La F4 sigue sin recortarse** (jcstress cubre las invariantes del deque), y esta decisión no
+  cambia el criterio de §9: sigue sin cumplirse el de la F1.
+
 ## 9. Riesgos
 
 | Riesgo | Mitigación |

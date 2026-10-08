@@ -1,10 +1,16 @@
 # planificador-work-stealing
 
-Librería en Java: pool de hilos con work-stealing sobre un deque lock-free de Chase-Lev. Su
-valor es demostrar la correctitud contra el modelo de memoria de Java con jcstress. Diseño y
-plan por fases en `DESIGN.md`.
+Deque lock-free de Chase-Lev en Java (`push`, `pop`, `steal`, con crecimiento del arreglo),
+probado con JUnit y jcstress. Diseño y plan por fases en `DESIGN.md`.
 
-> Borrador: el README completo (tabla de resultados, mediciones con JMH) llega en la F5.
+**Alcance recortado (2026-10-08):** el proyecto nació para demostrar la correctitud contra el
+modelo de memoria de Java y llegar a un pool con work-stealing. Se redujo a implementar y probar el
+deque. No hay pool ni mediciones con JMH. Los textos sobre el modelo de memoria (`F1-explicacion.md`
+y las justificaciones de modos de acceso) los redactó Claude a petición, y **no acreditan que el
+autor pueda explicarlos**; la corrección que se afirma aquí se apoya en las pruebas y en sus
+límites (ver abajo), no en una demostración propia.
+
+> Borrador: la tabla de resultados de jcstress llega en la F4.
 
 ## Límite conocido: las pruebas se corrieron solo en x86
 

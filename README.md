@@ -10,7 +10,21 @@ y las justificaciones de modos de acceso) los redactó Claude a petición, y **n
 autor pueda explicarlos**; la corrección que se afirma aquí se apoya en las pruebas y en sus
 límites (ver abajo), no en una demostración propia.
 
-> Borrador: la tabla de resultados de jcstress llega en la F4.
+**Corrida final** (2026-10-15, modo `default`, `wsp.f4.*`): AMD Ryzen 5 7520U (4 núcleos / 8 hilos), Windows 11, Java 23.0.1, jcstress 0.16. **482 configuraciones, 482 pasadas, 0 fallidas, 0 errores; cero salidas prohibidas** (solo en x86, ver el límite conocido). Todas las salidas aceptables de cada escenario se observaron, salvo que I4 sacó `0, 1, 0` solo 293.598 veces de 2.056.972.934 (el ladrón rara vez gana).
+
+| # | Escenario | Salidas aceptables observadas | Muestras | Prohibidas |
+|---|---|---|---|---|
+| I1 | `UltimaTareaPopContraSteal` | `1, 0, 4`; `0, 1, 4` | 1.549.314.694 | 0 |
+| I2 | `UltimaTareaDosLadrones` | `1, 0, 0`; `0, 1, 0` | 1.651.939.974 | 0 |
+| I3 | `UltimaTareaTresActores` | `1, 0, 0, 0`; `0, 1, 0, 0`; `0, 0, 1, 0` | 4.556.081.422 | 0 |
+| I4 | `PushContraSteal` | `1, 0, 0`; `0, 1, 0` | 2.056.972.934 | 0 |
+| I5 | `VisibilidadDeLaTarea` | `-1, -1`; `1, 2` | 2.738.188.934 | 0 |
+| I6 | `PopVacioLuegoPush` | `0, 1, 0`; `0, 0, 1` | 2.088.368.774 | 0 |
+| I7 | `CrecerConLadron` | `4, 1, 2` | 1.632.135.814 | 0 |
+| I8 | `CrecerConVuelta` | `8, 2, 4, 0` | 1.014.561.414 | 0 |
+| I10 | `PopContraDosRobos` | `2, 1, 0, 0`; `2, 0, 1, 0`; `0, 1, 2, 0`; `0, 2, 1, 0` | 4.937.152.782 | 0 |
+
+I9 no tiene escenario (ver abajo).
 
 ## Límite conocido: las pruebas se corrieron solo en x86
 

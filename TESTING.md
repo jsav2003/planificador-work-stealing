@@ -36,6 +36,24 @@ es `FORBIDDEN`. Montajes y salidas, escenario por escenario, en `F4.md` ("Escena
 | I9 | — | `top` solo crece: sin escenario (argumento + conteo exacto de `DequeChaseLevConcurrenteTest`) |
 | I10 | `PopContraDosRobos` | `pop` sin CAS contra dos ladrones |
 
+## Resultados de la corrida final
+
+2026-10-15, modo `default`, `wsp.f4.*`, AMD Ryzen 5 7520U (4 núcleos / 8 hilos), Windows 11, Java 23.0.1, jcstress 0.16. 482 configuraciones: 482 pasadas, 0 fallidas, 0 errores. Muestras sumadas de los informes HTML con un script ad hoc, no del resumen de jcstress.
+
+| # | Escenario | Salidas aceptables observadas | Muestras | Prohibidas |
+|---|---|---|---|---|
+| I1 | `UltimaTareaPopContraSteal` | `1, 0, 4`; `0, 1, 4` | 1.549.314.694 | 0 |
+| I2 | `UltimaTareaDosLadrones` | `1, 0, 0`; `0, 1, 0` | 1.651.939.974 | 0 |
+| I3 | `UltimaTareaTresActores` | `1, 0, 0, 0`; `0, 1, 0, 0`; `0, 0, 1, 0` | 4.556.081.422 | 0 |
+| I4 | `PushContraSteal` | `1, 0, 0`; `0, 1, 0` | 2.056.972.934 | 0 |
+| I5 | `VisibilidadDeLaTarea` | `-1, -1`; `1, 2` | 2.738.188.934 | 0 |
+| I6 | `PopVacioLuegoPush` | `0, 1, 0`; `0, 0, 1` | 2.088.368.774 | 0 |
+| I7 | `CrecerConLadron` | `4, 1, 2` | 1.632.135.814 | 0 |
+| I8 | `CrecerConVuelta` | `8, 2, 4, 0` | 1.014.561.414 | 0 |
+| I10 | `PopContraDosRobos` | `2, 1, 0, 0`; `2, 0, 1, 0`; `0, 1, 2, 0`; `0, 2, 1, 0` | 4.937.152.782 | 0 |
+
+El informe completo (por configuración: modo de compilación, opciones de la JVM, estado) queda en `target/jcstress-results/` tras correr el script; no se versiona. Una corrida `tough` previa de I10 (2026-10-10, 977 configuraciones, ~1,28 × 10¹¹ muestras) tampoco sacó salidas prohibidas.
+
 ## Mutaciones: ¿sirve cada escenario?
 
 Cada mutación se aplicó en el árbol de trabajo, se corrió su escenario en `quick` y se revirtió

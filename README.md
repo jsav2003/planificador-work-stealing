@@ -34,6 +34,12 @@ Consecuencias:
   (justificado en `F2.md`), no en los tests.
 - Pendiente: repetir la suite de la F4 en una máquina ARM, donde sí podrían aparecer fallos.
 
+Evidencia de la F4 (2026-10-15): x86 **sí** deja ver un reordenamiento, el de escritura seguida de lectura de otra variable. Al cambiar `setVolatile` por `setRelease` en `pop` (M8), el escenario I10 saca `2, 1, 2, 0` y `2, 2, 1, 0` (una tarea sale dos veces) en modo `quick`. Es la primera evidencia de que jcstress ve un fallo de modo de acceso en esta máquina. Las otras mutaciones de modo (M9 a M11) no fallaron.
+
+**I9 (`top` solo crece, ABA)** no tiene escenario de jcstress: es una propiedad de todas las ejecuciones. La cubren el argumento de `F3.md` y el conteo exacto de `DequeChaseLevConcurrenteTest`.
+
+**No hecho:** CI con jcstress (`DESIGN.md` §10), y repetir en ARM.
+
 ## ¿Sirven las pruebas? Mutaciones
 
 Para cada escenario de jcstress se rompió el deque a propósito y se comprobó que el escenario fallara. Detalle en `TESTING.md` y `F4.md`.

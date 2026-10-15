@@ -33,3 +33,19 @@ Consecuencias:
 - La corrección de los modos de acceso se apoya en el razonamiento con `happens-before`
   (justificado en `F2.md`), no en los tests.
 - Pendiente: repetir la suite de la F4 en una máquina ARM, donde sí podrían aparecer fallos.
+
+## ¿Sirven las pruebas? Mutaciones
+
+Para cada escenario de jcstress se rompió el deque a propósito y se comprobó que el escenario fallara. Detalle en `TESTING.md` y `F4.md`.
+
+| Mutación | Escenario | Resultado |
+|---|---|---|
+| `pop` y `steal` sin CAS (M1, M2) | I1, I2, I3 | falla |
+| `pop` sin restaurar `bottom` (M3, M5) | I1, I6 | falla |
+| `push` publica `bottom` antes de la casilla (M4) | I4 | falla |
+| `crecer` publica antes de copiar; copia con la máscara vieja (M6, M7) | I7, I8 | falla |
+| `pop` con `setRelease` en vez de `setVolatile` (M8) | I10 | **falla** |
+| `steal` sin `fullFence` (M9) | I10 | no falla en x86 |
+| `bottom` y `casillas` sin release/acquire (M10, M11) | I5, I7, I8 | no falla en x86 |
+
+Las mutaciones de lógica las ve cualquier máquina. De las de modo de acceso, solo M8 se ve en x86 (reordena escritura seguida de lectura); las otras no, y quedan para ARM.

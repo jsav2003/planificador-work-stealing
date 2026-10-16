@@ -58,7 +58,7 @@ Consecuencias:
 - "Cero resultados prohibidos" significa **cero en x86**, no cero en general.
 - La corrección de los modos de acceso se apoya en el razonamiento con `happens-before`
   (justificado en `F2.md`), no en los tests.
-- Pendiente: repetir la suite de la F4 en una máquina ARM, donde sí podrían aparecer fallos.
+- Repetir la suite de la F4 en una máquina ARM, donde sí podrían aparecer fallos, sigue sin hacerse.
 
 Evidencia de la F4 (2026-10-15): x86 **sí** deja ver un reordenamiento, el de escritura seguida de lectura de otra variable. Al cambiar `setVolatile` por `setRelease` en `pop` (M8), el escenario I10 saca `2, 1, 2, 0` y `2, 2, 1, 0` (una tarea sale dos veces) en modo `quick`. Es la primera evidencia de que jcstress ve un fallo de modo de acceso en esta máquina. Las otras mutaciones de modo (M9 a M11) no fallaron.
 
@@ -79,5 +79,6 @@ Para cada escenario de jcstress se rompió el deque a propósito y se comprobó 
 | `pop` con `setRelease` en vez de `setVolatile` (M8) | I10 | **falla** |
 | `steal` sin `fullFence` (M9) | I10 | no falla en x86 |
 | `bottom` y `casillas` sin release/acquire (M10, M11) | I5, I7, I8 | no falla en x86 |
+| Control C1: campos de la tarea escritos después de `push` | I5 | falla |
 
 Las mutaciones de lógica las ve cualquier máquina. De las de modo de acceso, solo M8 se ve en x86 (reordena escritura seguida de lectura); las otras no, y quedan para ARM.

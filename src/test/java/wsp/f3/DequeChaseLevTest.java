@@ -162,6 +162,18 @@ class DequeChaseLevTest {
     void capacidadInvalida() {
         assertThrows(IllegalArgumentException.class, () -> new DequeChaseLev<Integer>(3));
         assertThrows(IllegalArgumentException.class, () -> new DequeChaseLev<Integer>(1));
+        assertThrows(IllegalArgumentException.class, () -> new DequeChaseLev<Integer>(0));
+        assertThrows(IllegalArgumentException.class, () -> new DequeChaseLev<Integer>(-2));
+        assertThrows(IllegalArgumentException.class, () -> new DequeChaseLev<Integer>(6));
+    }
+
+    @Test
+    void capacidadesValidasSeAceptan() {
+        for (int c = 2; c <= 1 << 12; c <<= 1) {
+            DequeChaseLev<Integer> d = new DequeChaseLev<>(c);
+            d.push(7);
+            assertEquals(7, d.pop());
+        }
     }
 
     @Test

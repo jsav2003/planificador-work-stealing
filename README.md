@@ -3,6 +3,18 @@
 Deque lock-free de Chase-Lev en Java (`push`, `pop`, `steal`, con crecimiento del arreglo),
 probado con JUnit y jcstress. Diseño y plan por fases en `DESIGN.md`.
 
+## Dónde está y cómo correrlo
+
+El deque es `src/main/java/wsp/f3/DequeChaseLev.java`. Los paquetes `wsp.f0` a `wsp.f2` son los
+ejercicios previos (concurrencia básica, modelo de memoria, cola de Michael-Scott). Requiere Java 21
+o superior y Maven.
+
+- `mvn test`: JUnit secuencial y concurrente del deque (y de las fases anteriores).
+- `.\scripts\jcstress.ps1 -Tests "wsp.f4.*"`: los escenarios de jcstress, en modo rápido. jcstress no
+  corre con `mvn test`.
+
+Todos los comandos, los escenarios y las mutaciones están en `TESTING.md`.
+
 **Alcance recortado (2026-10-08):** el proyecto nació para demostrar la correctitud contra el
 modelo de memoria de Java y llegar a un pool con work-stealing. Se redujo a implementar y probar el
 deque. No hay pool ni mediciones con JMH. Los textos sobre el modelo de memoria (`F1-explicacion.md`
